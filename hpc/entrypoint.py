@@ -18,6 +18,10 @@ spark = SparkSession(sc)
 # units are seconds
 ts_bin_size = 60 * 60 * 24  # Round to nearest day
 
+def createFrame(path):
+  df = spark.read.csv(path, inferSchema=True, header=True)
+  return df.withColumn('ts_bin', F.round(F.col('time') / ts_bin_size))
+
 # Read in market-cap data
 bitcoin_market_cap_DF = spark.read.csv("data/btc/market-cap.csv", inferSchema=True, header=True)
 bitcoin_market_cap_DF = bitcoin_market_cap_DF.withColumn(
