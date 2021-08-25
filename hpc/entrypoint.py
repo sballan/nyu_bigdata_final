@@ -66,3 +66,32 @@ combined.show()
 
 # saves to directory
 combined.coalesce(1).write.mode('overwrite').option('header','true').csv('hdfs:///user/sb7875/output/combined_csv_data')
+
+
+
+# Start Machine Learning!
+feature_assembler = VectorAssembler(inputCols=["time", "market_cap", "transaction_count"], outputCol='VFeatures', handleInvalid='skip')
+output = feature_assembler.transform(combined)
+output.limit(2).show()
+
+
+traindata, testdata = output.randomSplit([0.75, 0.25])
+regressor = LinearRegression(featuresCol='VFeatures', labelCol='price')
+regressor = regressor.fit(traindata)
+
+pred = regressor.evaluate(testdata)
+print("""
+  Features Column: %s
+  Label Column: %s
+  Explained Variance: %s
+  r Squared %s
+  r Squared (adjusted) %s
+""" % (
+  pred.featuresCol,
+  pred.labelCol,
+  pred.explainedVariance,
+  pred.r2,
+  pred.r2adj
+))
+
+pred.predictions.select('price', 'prediction').coalesce(1).write.mode('overwrite').option('header','true').csv('hdfs:///user/sb7875/output/0_day_predictions')
