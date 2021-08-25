@@ -3,6 +3,8 @@ from pyspark import SparkContext
 from pyspark import SparkConf
 
 import pyspark.sql.functions as F
+from pyspark.sql.window import Window
+
 from pyspark.ml.linalg import Vector
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.regression import LinearRegression
@@ -10,7 +12,6 @@ from pyspark.ml.regression import LinearRegression
 # Spark session & context
 conf = SparkConf()
 conf.setAppName("final-project")
-
 sc = SparkContext(conf=conf)
 spark = SparkSession(sc)
 
@@ -51,6 +52,9 @@ combined = bitcoin_price_DF.join(bitcoin_transaction_count_DF, bitcoin_price_DF.
     ) \
   .sort(F.desc("time"))
 combined.show()
+
+window = Window.orderBy('ts_bin')
+bitcoin_price_DF.withColumn("tom_price", F.lag("price", 1).over(window)).show()
 
 combined = combined.join(bitcoin_market_cap_DF, combined.ts_bin == bitcoin_market_cap_DF.ts_bin, 'outer') \
   .select(
