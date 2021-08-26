@@ -77,7 +77,7 @@ composite_df.show()
 
 
 # saves to directory
-composite_df.coalesce(1).write.mode('overwrite').option('header','true').csv('hdfs:///user/sb7875/output/combined_csv_data')
+composite_df.coalesce(1).write.mode('overwrite').option('header','true').csv('hdfs:///user/sb7875/test-output/combined_csv_data')
 
 
 
@@ -85,19 +85,19 @@ composite_df.coalesce(1).write.mode('overwrite').option('header','true').csv('hd
 inputCols=[
   "ts_bin",
   "market_cap_btc",
-  "transaction_count_btc"
+  "transaction_count_btc",
   "market_cap_eth",
-  "transaction_count_eth"
+  "transaction_count_eth",
   "market_cap_ltc",
   "transaction_count_ltc"
 ]
 feature_assembler = VectorAssembler(inputCols=inputCols, outputCol='VFeatures', handleInvalid='skip')
-output = feature_assembler.transform(combined)
+output = feature_assembler.transform(composite_df)
 output.limit(2).show()
 
 
 traindata, testdata = output.randomSplit([0.75, 0.25])
-regressor = LinearRegression(featuresCol='VFeatures', labelCol='price')
+regressor = LinearRegression(featuresCol='VFeatures', labelCol=f'price_forecast_{prediction_coin}')
 regressor = regressor.fit(traindata)
 
 pred = regressor.evaluate(testdata)
@@ -115,4 +115,6 @@ print("""
   pred.r2adj
 ))
 
-# pred.predictions.select('price', 'prediction').coalesce(1).write.mode('overwrite').option('header','true').csv('hdfs:///user/sb7875/output/0_day_predictions')
+pred.predictions.select(f'price_{prediction_coin}', f'price_forecast_{prediction_coin}') \
+  .coalesce(1).write.mode('overwrite').option('header','true') \
+  .csv(f'hdfs:///user/sb7875/output/{price_forecast_distance * -1}_day_predictions')
