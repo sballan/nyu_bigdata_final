@@ -1,0 +1,1 @@
+hdfs dfs -get output/* output
