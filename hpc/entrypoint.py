@@ -32,66 +32,67 @@ def createFrame(path):
   df = spark.read.csv(path, inferSchema=True, header=True)
   return df.withColumn('ts_bin', F.round(F.col('time') / ts_bin_size))
 
+def loadCoinData(coin, composite_df=None):
+  # Read in market-cap data
+  composite_df = createFrame(f"data/{coin}/price.csv").select('time', 'ts_bin', 'price').sort(F.asc("time"))
+  #
+  # This is expensive, so we do it first, and then persist it.
+  window = Window.orderBy('ts_bin')
+  composite_df = composite_df.withColumn("price_forecast", F.lag("price", price_forecast_distance).over(window))
+  composite_df.persist()
+  composite_df.show()
+  #
+  df = createFrame(f"data/{coin}/market-cap.csv").select('ts_bin', 'market_cap')
+  composite_df = composite_df.join(df, composite_df.ts_bin == df.ts_bin, 'full_outer') \
+    .select(
+      composite_df.time,
+      composite_df.ts_bin,
+      df.market_cap,
+      composite_df.price,
+      composite_df.price_forecast,
+    ).sort(F.desc("time"))
+  #
+  df = createFrame(f"data/{coin}/transaction-count.csv").select('ts_bin', 'transaction_count')
+  composite_df = composite_df.join(df, composite_df.ts_bin == df.ts_bin, 'outer') \
+    .select(
+      composite_df.time,
+      composite_df.ts_bin,
+      composite_df.market_cap,
+      df.transaction_count,
+      composite_df.price,
+      composite_df.price_forecast,
+    )
+  #
+  return composite_df
 
-
-# Read in market-cap data
-composite_df = createFrame("data/btc/price.csv").select('time', 'ts_bin', 'price').sort(F.asc("time"))
-
-# This is expensive, so we do it first, and then persist it.
-window = Window.orderBy('ts_bin')
-composite_df = composite_df.withColumn("price_forecast", F.lag("price", price_forecast_distance).over(window))
-composite_df.persist()
+composite_df = loadCoinData('btc')
 composite_df.show()
 
-df = createFrame("data/btc/market-cap.csv").select('ts_bin', 'market_cap')
-composite_df = composite_df.join(df, composite_df.ts_bin == df.ts_bin, 'full_outer') \
-  .select(
-    composite_df.time,
-    composite_df.ts_bin,
-    df.market_cap,
-    composite_df.price,
-    composite_df.price_forecast,
-  ).sort(F.desc("time"))
 
-df = createFrame("data/btc/transaction-count.csv").select('ts_bin', 'transaction_count')
-composite_df = composite_df.join(df, composite_df.ts_bin == df.ts_bin, 'outer') \
-  .select(
-    composite_df.time,
-    composite_df.ts_bin,
-    composite_df.market_cap,
-    df.transaction_count,
-    composite_df.price,
-    composite_df.price_forecast,
-  )
+# # Combine these tables together
+# combined = bitcoin_price_DF.join(bitcoin_transaction_count_DF, bitcoin_price_DF.ts_bin == bitcoin_transaction_count_DF.ts_bin, 'outer') \
+#   .select(
+#     bitcoin_price_DF.ts_bin,
+#     bitcoin_price_DF.time,
+#     bitcoin_transaction_count_DF.transaction_count,
+#     bitcoin_price_DF.price
+#     ) \
+#   .sort(F.desc("time"))
+# combined.show()
 
+# window = Window.orderBy('ts_bin')
+# bitcoin_price_DF.withColumn("tom_price", F.lag("price", 1).over(window)).show()
 
-
-
-
-# Combine these tables together
-combined = bitcoin_price_DF.join(bitcoin_transaction_count_DF, bitcoin_price_DF.ts_bin == bitcoin_transaction_count_DF.ts_bin, 'outer') \
-  .select(
-    bitcoin_price_DF.ts_bin,
-    bitcoin_price_DF.time,
-    bitcoin_transaction_count_DF.transaction_count,
-    bitcoin_price_DF.price
-    ) \
-  .sort(F.desc("time"))
-combined.show()
-
-window = Window.orderBy('ts_bin')
-bitcoin_price_DF.withColumn("tom_price", F.lag("price", 1).over(window)).show()
-
-combined = combined.join(bitcoin_market_cap_DF, combined.ts_bin == bitcoin_market_cap_DF.ts_bin, 'outer') \
-  .select(
-    combined.ts_bin,
-    combined.time,
-    combined.transaction_count,
-    bitcoin_market_cap_DF.market_cap,
-    combined.price
-    ) \
-  .sort(F.desc("time"))
-combined.show()
+# combined = combined.join(bitcoin_market_cap_DF, combined.ts_bin == bitcoin_market_cap_DF.ts_bin, 'outer') \
+#   .select(
+#     combined.ts_bin,
+#     combined.time,
+#     combined.transaction_count,
+#     bitcoin_market_cap_DF.market_cap,
+#     combined.price
+#     ) \
+#   .sort(F.desc("time"))
+# combined.show()
 
 
 # saves to directory
