@@ -2,7 +2,7 @@ import json
 import csv
 from datetime import datetime
 
-def processData(coin):
+def prepareData(coin):
   # ---- PRICE
   jsonfile = open(f"data/json/{coin}/price.json")
   bitcoin_price_json = json.load(jsonfile)
@@ -66,8 +66,8 @@ def processData(coin):
   jsonfile.close()
 
 
-processData('btc')
-processData('eth')
-processData('ltc')
+prepareData('btc')
+prepareData('eth')
+prepareData('ltc')
 
 
