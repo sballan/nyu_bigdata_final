@@ -100,11 +100,20 @@ class CoinPredictor:
 #
     pred.predictions.select('ts_bin', f'price_{self.prediction_coin}', f'price_forecast_{self.prediction_coin}') \
       .coalesce(1).write.mode('overwrite').option('header','true') \
-      .csv(f'hdfs:///user/sb7875/output/{price_forecast_distance * -1}_day_predictions')
+      .csv(f'hdfs:///user/sb7875/output/{price_forecast_distance * -1}_day_predictions_{self.prediction_coin}_with_{"-".join(self.all_coins)}')
 
 
-c = CoinPredictor(ts_bin_size, all_coins, prediction_coin)
-c.predict(price_forecast_distance)
+
+for coin in all_coins:
+  c = CoinPredictor(ts_bin_size, all_coins, coin)
+  c.predict(price_forecast_distance)
+  c.predict(price_forecast_distance - 1)
+  c.predict(price_forecast_distance - 6)
+  c.predict(price_forecast_distance - 29)
+  c.predict(price_forecast_distance - 59)
+  c.predict(price_forecast_distance - 89)
+  c.predict(price_forecast_distance - 179)
+  c.predict(price_forecast_distance - 364)
 
 
 
