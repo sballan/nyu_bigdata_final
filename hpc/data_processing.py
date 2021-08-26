@@ -9,7 +9,7 @@ def processData(coin):
   #
   csvfile = open(f"data/{coin}/price.csv", 'w')
   writer = csv.writer(csvfile)
-  writer.writerow(['time', 'price'])
+  writer.writerow(['time', f'price_{coin}'])
   #
   for row in bitcoin_price_json:
     t = int(datetime.strptime(row['t'],"%Y-%m-%dT%H:%M:%SZ").timestamp())
@@ -24,7 +24,7 @@ def processData(coin):
   #
   csvfile = open(f"data/{coin}/price-ohlc.csv", 'w')
   writer = csv.writer(csvfile)
-  writer.writerow(['time', "open_price", 'high_price', 'low_price', 'close_price'])
+  writer.writerow(['time', f"open_price_{coin}", f'high_price_{coin}', f'low_price_{coin}', f'close_price_{coin}'])
   #
   for row in price_ohlc_json:
     t = int(datetime.strptime(row['t'],"%Y-%m-%dT%H:%M:%SZ").timestamp())
@@ -40,7 +40,7 @@ def processData(coin):
   #
   csvfile = open(f"data/{coin}/%s.csv" % filename, 'w')
   writer = csv.writer(csvfile)
-  writer.writerow(['time', 'market_cap'])
+  writer.writerow(['time', f'market_cap_{coin}'])
   #
   for row in json_data:
     t = int(datetime.strptime(row['t'],"%Y-%m-%dT%H:%M:%SZ").timestamp())
@@ -56,7 +56,7 @@ def processData(coin):
 
   csvfile = open(f"data/{coin}/%s.csv" % filename, 'w')
   writer = csv.writer(csvfile)
-  writer.writerow(['time', 'transaction_count'])
+  writer.writerow(['time', f'transaction_count_{coin}'])
 
   for row in json_data:
       t = int(datetime.strptime(row['t'],"%Y-%m-%dT%H:%M:%SZ").timestamp())
@@ -65,6 +65,9 @@ def processData(coin):
   csvfile.close()
   jsonfile.close()
 
+
+processData('btc')
 processData('eth')
+processData('ltc')
 
 
