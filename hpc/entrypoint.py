@@ -22,10 +22,6 @@ all_coins = ['btc', 'eth', 'ltc']
 prediction_coin = 'btc'
 price_forecast_distance = -1 # NOTE WEIRD BUG THIS MUST STAY -1
 
-c = CoinPredictor(ts_bin_size, all_coins, prediction_coin)
-c.predict(price_forecast_distance)
-
-
 class CoinPredictor:
   def __init__(self, ts_bin_size, all_coins, prediction_coin):
     self.ts_bin_size = ts_bin_size
@@ -106,6 +102,9 @@ class CoinPredictor:
       .coalesce(1).write.mode('overwrite').option('header','true') \
       .csv(f'hdfs:///user/sb7875/output/{price_forecast_distance * -1}_day_predictions')
 
+
+c = CoinPredictor(ts_bin_size, all_coins, prediction_coin)
+c.predict(price_forecast_distance)
 
 
 
