@@ -17,33 +17,55 @@ spark = SparkSession(sc)
 
 # units are seconds
 ts_bin_size = 60 * 60 * 24  # Round to nearest day
+price_forecast_distance = -1
 
+
+
+
+###### NOTE CONSIDER DOING DISTINCT BY BIN
+###### NOTE CONSIDER A PARITION KEY, LIKE MONTH OR QUARTER
+###### NOTE WINDOWING SHOULD BE DONE FIRST, WHILE THE DATA IS STILL SMALL
+
+
+# Create a frame with a timestamp bin
 def createFrame(path):
   df = spark.read.csv(path, inferSchema=True, header=True)
   return df.withColumn('ts_bin', F.round(F.col('time') / ts_bin_size))
 
+
+
 # Read in market-cap data
-bitcoin_market_cap_DF = spark.read.csv("data/btc/market-cap.csv", inferSchema=True, header=True)
-bitcoin_market_cap_DF = bitcoin_market_cap_DF.withColumn(
-  'ts_bin',
-  F.round(F.col('time') / ts_bin_size)
-)
+composite_df = createFrame("data/btc/price.csv").select('time', 'ts_bin', 'price').sort(F.asc("time"))
 
-# Read in transaction-count data
-bitcoin_transaction_count_DF = spark.read.csv("data/btc/transaction-count.csv", inferSchema=True, header=True)
-bitcoin_transaction_count_DF = bitcoin_transaction_count_DF.withColumn(
-  'ts_bin',
-  F.round(F.col('time') / ts_bin_size)
-)
-bitcoin_transaction_count_DF.sort(F.desc('time')).limit(1).show()
+# This is expensive, so we do it first, and then persist it.
+window = Window.orderBy('ts_bin')
+composite_df = composite_df.withColumn("price_forecast", F.lag("price", price_forecast_distance).over(window))
+composite_df.persist()
+composite_df.show()
 
-# Read in price data
-bitcoin_price_DF = spark.read.csv("data/btc/price.csv", inferSchema=True, header=True)
-bitcoin_price_DF = bitcoin_price_DF.withColumn(
-  'ts_bin',
-  F.round(F.col('time') / ts_bin_size)
-)
-bitcoin_price_DF.show()
+df = createFrame("data/btc/market-cap.csv").select('ts_bin', 'market_cap')
+composite_df = composite_df.join(df, composite_df.ts_bin == df.ts_bin, 'full_outer') \
+  .select(
+    composite_df.time,
+    composite_df.ts_bin,
+    df.market_cap,
+    composite_df.price,
+    composite_df.price_forecast,
+  ).sort(F.desc("time"))
+
+df = createFrame("data/btc/transaction-count.csv").select('ts_bin', 'transaction_count')
+composite_df = composite_df.join(df, composite_df.ts_bin == df.ts_bin, 'outer') \
+  .select(
+    composite_df.time,
+    composite_df.ts_bin,
+    composite_df.market_cap,
+    df.transaction_count,
+    composite_df.price,
+    composite_df.price_forecast,
+  )
+
+
+
 
 
 # Combine these tables together
