@@ -17,7 +17,9 @@ spark = SparkSession(sc)
 
 # units are seconds
 ts_bin_size = 60 * 60 * 24  # Round to nearest day
+prediction_coin = 'btc'
 price_forecast_distance = -1
+
 
 
 
@@ -32,40 +34,45 @@ def createFrame(path):
   df = spark.read.csv(path, inferSchema=True, header=True)
   return df.withColumn('ts_bin', F.round(F.col('time') / ts_bin_size))
 
-def loadCoinData(coin, composite_df=None):
-  # Read in market-cap data
-  composite_df = createFrame(f"data/{coin}/price.csv").select('time', 'ts_bin', 'price').sort(F.asc("time"))
-  #
-  # This is expensive, so we do it first, and then persist it.
-  window = Window.orderBy('ts_bin')
-  composite_df = composite_df.withColumn("price_forecast", F.lag("price", price_forecast_distance).over(window))
-  composite_df.persist()
-  composite_df.show()
-  #
-  df = createFrame(f"data/{coin}/market-cap.csv").select('ts_bin', 'market_cap')
+def loadCoinData(coin, composite_df):
+  df = createFrame(f"data/{coin}/market-cap.csv").select('ts_bin', 'market_cap') \
+    .withColumnRenamed('market_cap', f"market_cap_{coin}")
   composite_df = composite_df.join(df, composite_df.ts_bin == df.ts_bin, 'full_outer') \
     .select(
       composite_df.time,
       composite_df.ts_bin,
-      df.market_cap,
+      F.col(f"market_cap_{coin}"),
       composite_df.price,
       composite_df.price_forecast,
-    ).sort(F.desc("time"))
+    )
   #
-  df = createFrame(f"data/{coin}/transaction-count.csv").select('ts_bin', 'transaction_count')
+  df = createFrame(f"data/{coin}/transaction-count.csv").select('ts_bin', 'transaction_count') \
+    .withColumnRenamed('transaction_count', f"transaction_count_{coin}")
   composite_df = composite_df.join(df, composite_df.ts_bin == df.ts_bin, 'outer') \
     .select(
       composite_df.time,
       composite_df.ts_bin,
-      composite_df.market_cap,
-      df.transaction_count,
+      F.col(f"market_cap_{coin}"),
+      F.col(f"transaction_count_{coin}"),
       composite_df.price,
       composite_df.price_forecast,
     )
   #
   return composite_df
 
-composite_df = loadCoinData('btc')
+
+# Read in market-cap data
+composite_df = createFrame(f"data/{prediction_coin}/price.csv").select('time', 'ts_bin', 'price') #.sort(F.asc("time"))
+#
+# This is expensive, so we do it first, and then persist it.
+window = Window.orderBy('ts_bin')
+composite_df = composite_df.withColumn("price_forecast", F.lag("price", price_forecast_distance).over(window))
+composite_df.persist()
+composite_df.show()
+
+composite_df = loadCoinData('btc', composite_df)
+# composite_df = loadCoinData('eth', composite_df)
+# composite_df = loadCoinData('ltc', composite_df)
 composite_df.show()
 
 
@@ -96,33 +103,33 @@ composite_df.show()
 
 
 # saves to directory
-combined.coalesce(1).write.mode('overwrite').option('header','true').csv('hdfs:///user/sb7875/output/combined_csv_data')
+composite_df.coalesce(1).write.mode('overwrite').option('header','true').csv('hdfs:///user/sb7875/test-output/combined_csv_data')
 
 
 
-# Start Machine Learning!
-feature_assembler = VectorAssembler(inputCols=["time", "market_cap", "transaction_count"], outputCol='VFeatures', handleInvalid='skip')
-output = feature_assembler.transform(combined)
-output.limit(2).show()
+# # Start Machine Learning!
+# feature_assembler = VectorAssembler(inputCols=["time", "market_cap", "transaction_count"], outputCol='VFeatures', handleInvalid='skip')
+# output = feature_assembler.transform(combined)
+# output.limit(2).show()
 
 
-traindata, testdata = output.randomSplit([0.75, 0.25])
-regressor = LinearRegression(featuresCol='VFeatures', labelCol='price')
-regressor = regressor.fit(traindata)
+# traindata, testdata = output.randomSplit([0.75, 0.25])
+# regressor = LinearRegression(featuresCol='VFeatures', labelCol='price')
+# regressor = regressor.fit(traindata)
 
-pred = regressor.evaluate(testdata)
-print("""
-  Features Column: %s
-  Label Column: %s
-  Explained Variance: %s
-  r Squared %s
-  r Squared (adjusted) %s
-""" % (
-  pred.featuresCol,
-  pred.labelCol,
-  pred.explainedVariance,
-  pred.r2,
-  pred.r2adj
-))
+# pred = regressor.evaluate(testdata)
+# print("""
+#   Features Column: %s
+#   Label Column: %s
+#   Explained Variance: %s
+#   r Squared %s
+#   r Squared (adjusted) %s
+# """ % (
+#   pred.featuresCol,
+#   pred.labelCol,
+#   pred.explainedVariance,
+#   pred.r2,
+#   pred.r2adj
+# ))
 
-pred.predictions.select('price', 'prediction').coalesce(1).write.mode('overwrite').option('header','true').csv('hdfs:///user/sb7875/output/0_day_predictions')
+# pred.predictions.select('price', 'prediction').coalesce(1).write.mode('overwrite').option('header','true').csv('hdfs:///user/sb7875/output/0_day_predictions')
