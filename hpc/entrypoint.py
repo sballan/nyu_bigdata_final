@@ -37,24 +37,13 @@ def createFrame(coin, file):
 def loadCoinData(coin, composite_df):
   df = createFrame(coin, "market-cap.csv").select('ts_bin', f'market_cap_{coin}')
   composite_df = composite_df.join(df, 'ts_bin', 'left_outer') #\
-  # .select(
-  #   composite_df.time,
-  #   composite_df.ts_bin,
-  #   F.col(f"market_cap_{coin}"),
-  #   composite_df.price,
-  #   composite_df.price_forecast,
-  # )
   #
   df = createFrame(coin, "transaction-count.csv").select('ts_bin', f'transaction_count_{coin}')
   composite_df = composite_df.join(df, 'ts_bin', 'left_outer') #\
-  # .select(
-  #   composite_df.time,
-  #   composite_df.ts_bin,
-  #   F.col(f"market_cap_{coin}"),
-  #   F.col(f"transaction_count_{coin}"),
-  #   composite_df.price,
-  #   composite_df.price_forecast,
-  # )
+  #
+  # df = createFrame(coin, "price-ohlc.csv") \
+  #   .select('ts_bin', f'open_price_{coin}', f'high_price_{coin}', f'low_price_{coin}', f'close_price_{coin}')
+  # composite_df = composite_df.join(df, 'ts_bin', 'left_outer') #\
   #
   return composite_df
 
@@ -77,11 +66,8 @@ composite_df.show()
 
 
 # saves to directory
-composite_df.coalesce(1).write.mode('overwrite').option('header','true').csv('hdfs:///user/sb7875/test-output/combined_csv_data')
+composite_df.coalesce(1).write.mode('overwrite').option('header','true').csv('hdfs:///user/sb7875/output/combined_csv_data')
 
-
-
-# # Start Machine Learning!
 inputCols=[
   "ts_bin",
   "market_cap_btc",
@@ -115,6 +101,6 @@ print("""
   pred.r2adj
 ))
 
-pred.predictions.select(f'price_{prediction_coin}', f'price_forecast_{prediction_coin}') \
+pred.predictions.select('ts_bin', f'price_{prediction_coin}', f'price_forecast_{prediction_coin}') \
   .coalesce(1).write.mode('overwrite').option('header','true') \
   .csv(f'hdfs:///user/sb7875/output/{price_forecast_distance * -1}_day_predictions')
