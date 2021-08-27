@@ -7,6 +7,8 @@
       "params": {"i": "24h"}
     }
   ],
+  "api_key": "1wYkOLcQYMhggGz8fIJKo1rTDch",
   "api_limit_reset_time": 60,
-  "api_limit_quantity": 30
+  "api_limit_quantity": 30,
+  "downloads_path": "data/json"
 }
