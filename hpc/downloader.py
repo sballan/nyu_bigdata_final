@@ -1,7 +1,10 @@
-import ray
-import requests
 import json
 import time
+import os
+
+import ray
+import requests
+
 
 # Bootstrap our config file
 CONFIG_PATH = 'downloader-config.json'
@@ -28,9 +31,12 @@ def exec_request(req):
   coin = params['a']
 
   try:
-    r = requests.get(endpoint['url'],params=params)
+    # Automatically create necessary folders for this
+    filename = f"{DOWNLOADS_PATH}/{coin}/{endpoint['name']}.json"
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-    with open(f"{DOWNLOADS_PATH}/{coin}/{endpoint['name']}.json",'w') as f:
+    r = requests.get(endpoint['url'],params=params)
+    with open(f"{filename}.json",'w') as f:
       f.write(r.text)
     return [True, coin, endpoint['url']]
   except:
