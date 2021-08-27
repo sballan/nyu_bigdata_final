@@ -5,6 +5,11 @@
       "name": "market_cap",
       "url": "https://api.glassnode.com/v1/metrics/market/marketcap_usd",
       "params": {"i": "24h"}
+    },
+    {
+      "name": "transaction_count",
+      "url": "https://api.glassnode.com/v1/metrics/transactions/count",
+      "params": {"i": "24h"}
     }
   ],
   "api_key": "1wYkOLcQYMhggGz8fIJKo1rTDch",
