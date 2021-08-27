@@ -18,6 +18,12 @@ API_QUANTITY = config['api_limit_quantity']
 DOWNLOADS_PATH = config['downloads_path']
 ENDPOINTS = config['glassnode_endpoints']
 
+metrics_list_url = config['glassnode_metrics_endpoint']
+r = requests.get(metrics_list_url,params={"api_key": API_KEY})
+with open(f"glassnode_metrics_list.json",'w') as f:
+  json_pretty_string = json.dumps(json.loads(r.text), indent=2)
+  f.write(json_pretty_string)
+
 print("Loaded Configs")
 
 # Start ray

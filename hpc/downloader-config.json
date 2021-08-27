@@ -1,5 +1,6 @@
 {
   "coins": ["btc", "eth", "ltc"],
+  "glassnode_metrics_endpoint": "https://api.glassnode.com/v2/metrics/endpoints",
   "glassnode_endpoints": [
     {
       "name": "price",
