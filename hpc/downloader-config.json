@@ -1,4 +1,5 @@
 {
+  "coins": ["btc", "eth", "ltc"],
   "glassnode_endpoints": [
     {
       "name": "market_cap",
