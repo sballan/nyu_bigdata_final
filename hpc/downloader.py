@@ -1,25 +1,37 @@
 import requests
 import json
+import time
 
 API_KEY = "1wYkOLcQYMhggGz8fIJKo1rTDch"
-ENDPOINTS_PATH = 'glassnode-endpoints.json'
+CONFIG_PATH = 'downloader-config.json'
 DOWNLOADS_PATH = 'data/json'
 
-with open('glassnode-endpoints.json') as f:
-  endpoints = json.load(f)
+# First get the config file
+with open(CONFIG_PATH) as f:
+  config = json.load(f)
+
+API_RESET = config['api_limit_reset_time']
+API_QUANTITY = config['api_limit_quantity']
+
+request_params = []
+# Next, iterate over endpoints and coins
+for coin in config['coins']:
+  for endpoint in endpoints:
+    params = endpoints['params']
+    params['api_key'] = API_KEY
+    params['a'] = coin
+
+    request_params.append(params)
 
 
-coin = 'btc'
-endpoint = endpoints[0]
+while len(request_params) > 0:
+  start_time = time.time()
+  for i in range(30):
+    # DO RAY
 
-params = {
-  'api_key': API_KEY,
-  'a': coin,
-}
+  time_elapsed = time.time() - start_time
+  time.sleep(API_RESET - time_elapsed)
 
-params = endpoint["params"]
-params['api_key'] = API_KEY
-params['a'] = coin
 
 r = requests.get(endpoint['url'],params=params)
 
