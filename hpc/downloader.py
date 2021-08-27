@@ -37,16 +37,19 @@ def exec_request(req):
   coin = params['a']
 
   try:
+    r = requests.get(endpoint['url'],params=params)
+    if r.status_code != 200:
+      return [False, coin, endpoint['name']]
+
     # Automatically create necessary folders for this
     filename = f"{DOWNLOADS_PATH}/{coin}/{endpoint['name']}.json"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-    r = requests.get(endpoint['url'],params=params)
     with open(f"{filename}.json",'w') as f:
       f.write(r.text)
-    return [True, coin, endpoint['url']]
+    return [True, coin, endpoint['name']]
   except:
-    return [False, coin, endpoint['url']]
+    return [False, coin, endpoint['name']]
 
 
 reqs = []
@@ -68,7 +71,7 @@ print(f"Preparing {len(reqs)} requests across {len(config['coins'])} coins and {
 
 
 while len(reqs) > 0:
-  num_reqs = min(len(reqs),API_QUANTITY)
+  num_reqs = min(len(reqs), API_QUANTITY)
   print(f"Queueing up {num_reqs} requests at {time.time()}")
 
   start_time = time.time()
@@ -77,11 +80,12 @@ while len(reqs) > 0:
 
   time_elapsed = time.time() - start_time
   print(f"We queued {num_reqs} in {time_elapsed} seconds.")
-  print(f"About to sleep for {API_RESET - time_elapsed} seconds.")
+  print(f"About to sleep for {API_RESET} seconds.")
 
-  time.sleep(API_RESET - time_elapsed)
+  time.sleep(API_RESET)
 
-  print(ray.get(futures)) # [0, 1, 4, 9]
+  [print(f) for f in ray.get(futures)]
+  # print(ray.get(futures)) # [0, 1, 4, 9]
 
 
 
