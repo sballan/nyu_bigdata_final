@@ -67,7 +67,7 @@ while len(reqs) > 0:
   print(f"We queued {num_reqs} in {time_elapsed} seconds.")
   print(f"About to sleep for {API_RESET - time_elapsed} seconds.")
 
-  time.sleep(1)
+  time.sleep(API_RESET - time_elapsed)
 
   print(ray.get(futures)) # [0, 1, 4, 9]
 
