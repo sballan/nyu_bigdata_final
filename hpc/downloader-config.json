@@ -2,7 +2,7 @@
   "coins": ["btc", "eth", "ltc", "dai", "usdc"],
   "api_key": "1wYkOLcQYMhggGz8fIJKo1rTDch",
   "api_limit_reset_time": 60,
-  "api_limit_quantity": 29,
+  "api_limit_quantity": 30,
   "downloads_path": "data/json",
   "glassnode_metrics_endpoint": "https://api.glassnode.com/v2/metrics/endpoints",
   "glassnode_endpoints": [
