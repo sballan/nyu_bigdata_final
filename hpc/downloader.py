@@ -26,7 +26,8 @@ with open(f"glassnode_metrics_list.json",'w') as f:
 
 print("Loaded Configs")
 
-# Start ray
+# Start ray.
+# Make sure Redis is running.  Go to redis-6.2.5/src and run ./redis-server
 ray.init()
 
 @ray.remote
