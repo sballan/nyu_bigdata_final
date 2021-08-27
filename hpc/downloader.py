@@ -1,17 +1,23 @@
+import ray
 import requests
 import json
 import time
 
-API_KEY = "1wYkOLcQYMhggGz8fIJKo1rTDch"
+# Bootstrap our config file
 CONFIG_PATH = 'downloader-config.json'
-DOWNLOADS_PATH = 'data/json'
-
-# First get the config file
 with open(CONFIG_PATH) as f:
   config = json.load(f)
 
+# Use config file to setup our constants
+API_KEY = config['api_key']
 API_RESET = config['api_limit_reset_time']
 API_QUANTITY = config['api_limit_quantity']
+DOWNLOADS_PATH = config['downloads_path']
+ENDPOINTS = config['glassnode_endpoints']
+
+# Start ray
+ray.init()
+
 
 request_params = []
 # Next, iterate over endpoints and coins
@@ -26,7 +32,10 @@ for coin in config['coins']:
 
 while len(request_params) > 0:
   start_time = time.time()
-  for i in range(30):
+
+  print(f"Queueing up {API_QUANTITY} requests at {time.time()}")
+
+  for i in range(API_QUANTITY):
     # DO RAY
 
   time_elapsed = time.time() - start_time
