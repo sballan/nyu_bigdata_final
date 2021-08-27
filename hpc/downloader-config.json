@@ -1,0 +1,11 @@
+{
+  "glassnode_endpoints": [
+    {
+      "name": "market_cap",
+      "url": "https://api.glassnode.com/v1/metrics/market/marketcap_usd",
+      "params": {"i": "24h"}
+    }
+  ],
+  "api_limit_reset_time": 60,
+  "api_limit_quantity": 30
+}
