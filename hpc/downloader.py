@@ -22,7 +22,7 @@ ray.init()
 
 @ray.remote
 def exec_request(req):
-  req = json.load(req)
+  req = json.loads(req)
   endpoint = req['endpoint']
   params = req['params']
   coin = params['a']
@@ -60,11 +60,14 @@ while len(reqs) > 0:
   print(f"Queueing up {num_reqs} requests at {time.time()}")
 
   start_time = time.time()
-  futures = [exec_request.remote(reqs.pop) for i in range(num_reqs)]
+
+  futures = [exec_request.remote(reqs.pop()) for i in range(num_reqs)]
+
   time_elapsed = time.time() - start_time
   print(f"We queued {num_reqs} in {time_elapsed} seconds.")
   print(f"About to sleep for {API_RESET - time_elapsed} seconds.")
-  time.sleep(API_RESET - time_elapsed)
+
+  time.sleep(1)
 
   print(ray.get(futures)) # [0, 1, 4, 9]
 
