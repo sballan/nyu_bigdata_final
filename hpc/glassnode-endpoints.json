@@ -1,7 +1,0 @@
-[
-  {
-    "name": "market_cap",
-    "url": "https://api.glassnode.com/v1/metrics/market/marketcap_usd",
-    "params": {"i": "24h"}
-  }
-]
