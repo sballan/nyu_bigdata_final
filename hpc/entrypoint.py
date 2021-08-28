@@ -15,12 +15,15 @@ conf.setAppName("final-project")
 sc = SparkContext(conf=conf)
 spark = SparkSession(sc)
 
-# units are seconds
-ts_bin_size = 60 * 60 * 24  # Round to nearest day
+with open('downloader-config.json') as f:
+  config = json.load(f)
 
-all_coins = ['btc', 'eth', 'ltc']
-prediction_coin = 'btc'
-price_forecast_distance = 1
+# units are seconds
+ts_bin_size = config['ts_bin_size']
+all_coints = config['coins']
+prediction_coin = config['prediction_coin']
+price_forecast_distance = config['price_forecast_distance']
+metrics = map(lambda endpoint: endpoint['name'], config['endpoints'])
 
 class CoinPredictor:
   def __init__(self, ts_bin_size, all_coins, prediction_coin):
@@ -35,16 +38,10 @@ class CoinPredictor:
     return df.withColumn(f'ts_bin', F.round(F.col('time') / self.ts_bin_size))
 #
   def loadCoinData(self, coin, composite_df):
-    df = self.createFrame(coin, "market-cap.csv").select('ts_bin', f'market_cap_{coin}')
-    composite_df = composite_df.join(df, 'ts_bin', 'left_outer') #\
-    #
-    df = self.createFrame(coin, "transaction-count.csv").select('ts_bin', f'transaction_count_{coin}')
-    composite_df = composite_df.join(df, 'ts_bin', 'left_outer') #\
-    #
-    # df = self.createFrame(coin, "price-ohlc.csv") \
-    #   .select('ts_bin', f'open_price_{coin}', f'high_price_{coin}', f'low_price_{coin}', f'close_price_{coin}')
-    # composite_df = composite_df.join(df, 'ts_bin', 'left_outer') #\
-    #
+    for metric in metrics:
+      df = self.createFrame(coin, f"{metric}.csv").select('ts_bin', f'{metric}_{coin}')
+      composite_df = composite_df.join(df, 'ts_bin', 'left_outer') #\
+
     return composite_df
 #
   def predict(self, price_forecast_distance):
@@ -69,8 +66,8 @@ class CoinPredictor:
     inputCols = ["ts_bin"]
 #
     for coin in self.all_coins:
-      inputCols.append(f"market_cap_{coin}")
-      inputCols.append(f"transaction_count_{coin}")
+      for metric in metrics:
+        inputCols.append(f"{metrics}_{coin}")
 #
     # We can't use rows with nulls
     composite_df = composite_df.dropna('any')
