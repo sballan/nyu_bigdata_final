@@ -4,6 +4,7 @@
   "api_limit_reset_time": 60,
   "api_limit_quantity": 30,
   "downloads_path": "data/json",
+  "hdfs_path": "hdfs:///user/sb7875/output",
   "glassnode_metrics_endpoint": "https://api.glassnode.com/v2/metrics/endpoints",
   "glassnode_endpoints": [
     {
