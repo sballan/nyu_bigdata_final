@@ -20,7 +20,7 @@ ts_bin_size = 60 * 60 * 24  # Round to nearest day
 
 all_coins = ['btc', 'eth', 'ltc']
 prediction_coin = 'btc'
-price_forecast_distance = -1 # NOTE WEIRD BUG THIS MUST STAY -1
+price_forecast_distance = 1
 
 class CoinPredictor:
   def __init__(self, ts_bin_size, all_coins, prediction_coin):
@@ -54,7 +54,7 @@ class CoinPredictor:
     #
     # This is expensive, so we do it first, and then persist it.
     window = Window.orderBy(f'ts_bin')
-    composite_df = composite_df.withColumn(f"price_forecast_{self.prediction_coin}", F.lag(f'price_{self.prediction_coin}', price_forecast_distance).over(window))
+    composite_df = composite_df.withColumn(f"price_forecast_{self.prediction_coin}", F.lag(f'price_{self.prediction_coin}', price_forecast_distance * -1).over(window))
     composite_df.persist()
     composite_df.show()
     #
@@ -78,8 +78,10 @@ class CoinPredictor:
     vector_assembler = VectorAssembler(inputCols=inputCols, outputCol='VFeatures', handleInvalid='skip')
     output = vector_assembler.transform(composite_df)
     output.limit(2).show()
-#
-    traindata, testdata = output.randomSplit([0.75, 0.25])
+
+
+    test_data = output.sort(F.desc("ts_bin")).limit(price_forecast_distance)
+    traindata = output.subtract(test_data)
     regressor = LinearRegression(featuresCol='VFeatures', labelCol=f'price_forecast_{self.prediction_coin}')
     regressor = regressor.fit(traindata)
     pred = regressor.evaluate(testdata)
@@ -100,7 +102,7 @@ class CoinPredictor:
 #
     pred.predictions.select('ts_bin', f'price_{self.prediction_coin}', f'price_forecast_{self.prediction_coin}') \
       .coalesce(1).write.mode('overwrite').option('header','true') \
-      .csv(f'hdfs:///user/sb7875/output/{price_forecast_distance * -1}_day_predictions')
+      .csv(f'hdfs:///user/sb7875/output/{price_forecast_distance}_day_predictions')
 
 
 c = CoinPredictor(ts_bin_size, all_coins, prediction_coin)
