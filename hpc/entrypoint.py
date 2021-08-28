@@ -75,8 +75,8 @@ class CoinPredictor:
     # We can't use rows with nulls
     composite_df = composite_df.dropna('any')
 #
-    feature_assembler = VectorAssembler(inputCols=inputCols, outputCol='VFeatures', handleInvalid='skip')
-    output = feature_assembler.transform(composite_df)
+    vector_assembler = VectorAssembler(inputCols=inputCols, outputCol='VFeatures', handleInvalid='skip')
+    output = vector_assembler.transform(composite_df)
     output.limit(2).show()
 #
     traindata, testdata = output.randomSplit([0.75, 0.25])
@@ -106,55 +106,3 @@ class CoinPredictor:
 c = CoinPredictor(ts_bin_size, all_coins, prediction_coin)
 c.predict(price_forecast_distance)
 
-
-
-
-
-
-###### NOTE CONSIDER DOING DISTINCT BY BIN
-###### NOTE CONSIDER A PARITION KEY, LIKE MONTH OR QUARTER
-###### NOTE WINDOWING SHOULD BE DONE FIRST, WHILE THE DATA IS STILL SMALL
-
-
-
-
-
-# # saves to directory
-# composite_df.coalesce(1).write.mode('overwrite').option('header','true').csv('hdfs:///user/sb7875/output/combined_csv_data')
-
-# inputCols=[
-#   "ts_bin",
-#   "market_cap_btc",
-#   "transaction_count_btc",
-#   "market_cap_eth",
-#   "transaction_count_eth",
-#   "market_cap_ltc",
-#   "transaction_count_ltc"
-# ]
-# feature_assembler = VectorAssembler(inputCols=inputCols, outputCol='VFeatures', handleInvalid='skip')
-# output = feature_assembler.transform(composite_df)
-# output.limit(2).show()
-
-
-# traindata, testdata = output.randomSplit([0.75, 0.25])
-# regressor = LinearRegression(featuresCol='VFeatures', labelCol=f'price_forecast_{prediction_coin}')
-# regressor = regressor.fit(traindata)
-
-# pred = regressor.evaluate(testdata)
-# print("""
-#   Features Column: %s
-#   Label Column: %s
-#   Explained Variance: %s
-#   r Squared %s
-#   r Squared (adjusted) %s
-# """ % (
-#   pred.featuresCol,
-#   pred.labelCol,
-#   pred.explainedVariance,
-#   pred.r2,
-#   pred.r2adj
-# ))
-
-# pred.predictions.select('ts_bin', f'price_{prediction_coin}', f'price_forecast_{prediction_coin}') \
-#   .coalesce(1).write.mode('overwrite').option('header','true') \
-#   .csv(f'hdfs:///user/sb7875/output/{price_forecast_distance * -1}_day_predictions')
