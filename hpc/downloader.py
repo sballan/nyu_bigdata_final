@@ -1,10 +1,11 @@
 import json
 import time
 import os
+import csv
+from datetime import datetime
 
 import ray
 import requests
-
 
 # Bootstrap our config file
 CONFIG_PATH = 'downloader-config.json'
@@ -16,6 +17,7 @@ API_KEY = config['api_key']
 API_RESET = config['api_limit_reset_time']
 API_QUANTITY = config['api_limit_quantity']
 DOWNLOADS_PATH = config['downloads_path']
+HDFS_PATH = config['hdfs_path']
 ENDPOINTS = config['glassnode_endpoints']
 
 metrics_list_url = config['glassnode_metrics_endpoint']
@@ -24,7 +26,7 @@ with open(f"glassnode_metrics_list.json",'w') as f:
   json_pretty_string = json.dumps(json.loads(r.text), indent=2)
   f.write(json_pretty_string)
 
-print("Loaded Configs")
+print("Loaded Configs.")
 
 # Start ray.
 # Make sure Redis is running.  Go to redis-6.2.5/src and run ./redis-server
@@ -34,23 +36,47 @@ ray.init()
 def exec_request(req):
   req = json.loads(req)
   endpoint = req['endpoint']
+  endpoint_name = endpoint['name']
   params = req['params']
   coin = params['a']
 
   try:
     r = requests.get(endpoint['url'],params=params)
     if r.status_code != 200:
-      return [False, coin, endpoint['name']]
+      return [False, coin, endpoint_name, False]
 
     # Automatically create necessary folders for this
-    filename = f"{DOWNLOADS_PATH}/{coin}/{endpoint['name']}.json"
+    filename = f"{DOWNLOADS_PATH}/{coin}/{endpoint_name}.csv"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-    with open(f"{filename}.json",'w') as f:
-      f.write(r.text)
-    return [True, coin, endpoint['name']]
+    req_json = json.loads(r.text)
+
+    csvfile = open(filename, 'w')
+    writer = csv.writer(csvfile)
+    writer.writerow(['time', f'{endpoint_name}_{coin}'])
+
+    for row in req_json:
+      # t = int(datetime.strptime(row['t'],"%Y-%m-%dT%H:%M:%SZ").timestamp())
+      writer.writerow([row['t'], row['v']])
+
+    csvfile.close()
+
+    # To make this code more portable for testing, we allow hdfs uploads to fail
+    in_hdfs = False
+    try:
+      success = 0
+      hdfs_path = f"{HDFS_PATH}/{coin}/{endpoint_name}.csv"
+      success += os.system(f"hdfs dfs -mkdir -p {hdfs_path}")
+      success += os.system(f"hdfs dfs -put -f {hdfs_path} {filename}")
+      if success == 0:
+        os.system(f"rm {filename}")
+        in_hdfs = True
+    except:
+      in_hdfs = False
+
+    return [True, coin, endpoint_name, in_hdfs]
   except:
-    return [False, coin, endpoint['name']]
+    return [False, coin, endpoint_name, in_hdfs]
 
 
 reqs = []
