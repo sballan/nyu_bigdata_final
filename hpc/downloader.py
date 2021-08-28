@@ -65,8 +65,8 @@ def exec_request(req):
     in_hdfs = False
     try:
       success = 0
-      success += os.system(f"hdfs dfs -mkdir -p {f"{HDFS_PATH}/{coin}"}")
-      success += os.system(f"hdfs dfs -put -f {filename} {f"{HDFS_PATH}/{coin}/{endpoint_name}.csv"}")
+      success += os.system(f"hdfs dfs -mkdir -p {HDFS_PATH}/{coin}")
+      success += os.system(f"hdfs dfs -put -f {filename} {HDFS_PATH}/{coin}/{endpoint_name}.csv")
       if success == 0:
         os.system(f"rm {filename}")
         in_hdfs = True
