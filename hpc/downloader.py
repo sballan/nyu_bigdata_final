@@ -65,9 +65,8 @@ def exec_request(req):
     in_hdfs = False
     try:
       success = 0
-      hdfs_path = f"{HDFS_PATH}/{coin}/{endpoint_name}.csv"
-      success += os.system(f"hdfs dfs -mkdir -p {hdfs_path}")
-      success += os.system(f"hdfs dfs -put -f {hdfs_path} {filename}")
+      success += os.system(f"hdfs dfs -mkdir -p {f"{HDFS_PATH}/{coin}"}")
+      success += os.system(f"hdfs dfs -put -f {filename} {f"{HDFS_PATH}/{coin}/{endpoint_name}.csv"}")
       if success == 0:
         os.system(f"rm {filename}")
         in_hdfs = True
@@ -104,18 +103,13 @@ while len(reqs) > 0:
   start_time = time.time()
 
   futures = [exec_request.remote(reqs.pop()) for i in range(num_reqs)]
+  [print(f) for f in ray.get(futures)]
 
   time_elapsed = time.time() - start_time
   print(f"We queued {num_reqs} in {time_elapsed} seconds.")
-  print(f"About to sleep for {API_RESET} seconds.")
+  print(f"About to sleep for {API_RESET - time_elapsed} seconds.")
 
-  time.sleep(API_RESET)
+  time.sleep(API_RESET - time_elapsed)
 
-  [print(f) for f in ray.get(futures)]
+
   # print(ray.get(futures)) # [0, 1, 4, 9]
-
-
-
-
-
-
